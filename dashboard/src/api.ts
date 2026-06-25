@@ -6,6 +6,8 @@ export interface Snapshot {
   updated_at: number;
   mode: string;
   enabled: boolean;
+  halted?: boolean;
+  max_drawdown_pct?: number;
   open_positions: number;
   bankroll: {
     starting: number;

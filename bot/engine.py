@@ -30,6 +30,7 @@ class PaperEngine:
     def __init__(self, db: Database, cfg: Config):
         self.db = db
         self.cfg = cfg
+        self._dd_logged = False
         if self.db.get_state(K_CASH) is None:
             self.db.set_state(K_CASH, cfg.engine.starting_bankroll)
             self.db.set_state(K_REALIZED, 0.0)
@@ -62,6 +63,14 @@ class PaperEngine:
     def open_exposure(self) -> float:
         return sum(p["size_usd"] for p in self.db.open_positions())
 
+    @property
+    def halted(self) -> bool:
+        """True when the drawdown circuit breaker has tripped (equity too low)."""
+        md = self.cfg.engine.max_drawdown_pct
+        if md <= 0:
+            return False
+        return self.equity <= self.cfg.engine.starting_bankroll * (1.0 - md)
+
     # ------------------------------------------------------------------ #
     # fill simulation
     # ------------------------------------------------------------------ #
@@ -81,6 +90,17 @@ class PaperEngine:
         """Mirror a tracked wallet's entry as a paper position. Returns position id."""
         if not self.enabled:
             return None
+        # Drawdown circuit breaker: stop opening new positions when equity is too low.
+        if self.halted:
+            if not self._dd_logged:
+                log.warning(
+                    "drawdown guard TRIPPED: equity $%.2f ≤ %.0f%% of start — pausing "
+                    "new entries (open positions still resolve)",
+                    self.equity, (1.0 - self.cfg.engine.max_drawdown_pct) * 100,
+                )
+                self._dd_logged = True
+            return None
+        self._dd_logged = False
         if trade.side == "SELL" and not self.cfg.engine.mirror_sells:
             return None
         if self.db.position_exists(market.condition_id, trade.wallet, trade.outcome):
@@ -92,6 +112,11 @@ class PaperEngine:
         fill_price = self._entry_fill_price(quote)
         if fill_price is None:
             log.warning("no quote for %s; cannot mirror", trade.outcome)
+            return None
+        # Risk filter: skip entries outside the configured price band.
+        if fill_price > self.cfg.engine.max_entry_price or fill_price < self.cfg.engine.min_entry_price:
+            log.debug("skip %s: fill %.3f outside [%.2f, %.2f]", trade.outcome, fill_price,
+                      self.cfg.engine.min_entry_price, self.cfg.engine.max_entry_price)
             return None
 
         size_usd = self._target_size_usd()

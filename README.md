@@ -117,6 +117,7 @@ python -m bot cycle     # ✅ Step-2 review: walk through ONE full simulated tra
 python -m bot run       # run the paper-trading loop (Definition of Done)
 python -m bot serve     # run only the FastAPI backend (http://127.0.0.1:8000)
 python -m bot all       # run the loop + backend together (best for the dashboard)
+python -m bot reset     # wipe paper bankroll/positions/equity for a clean start
 ```
 
 Then start the dashboard:
@@ -151,7 +152,7 @@ from `.env`.
 | `gamma_base_url` / `clob_base_url` / `data_api_base_url` / `ws_url` | Polymarket URLs | API base URLs (public) |
 | `polygon_rpc_url` | `${POLYGON_RPC_URL}` | Polygon JSON‑RPC for on‑chain scanning |
 | `enable_onchain` | `false` | augment Data API tape with on‑chain CTF Exchange `OrderFilled` logs (read‑only) |
-| `poll_interval_seconds` | `15` | main loop cadence |
+| `poll_interval_seconds` | `5` | main loop cadence |
 | `http_timeout_seconds` | `12` | per‑request timeout |
 | `max_retries` / `retry_backoff_seconds` | `3` / `1` | transient‑error retry policy (4xx like 403 are **not** retried) |
 
@@ -166,10 +167,11 @@ from `.env`.
 | key | default | meaning |
 |-----|---------|---------|
 | `lookback_days` | `7` | history window for grading/scoring |
-| `min_trades` | `20` | ignore wallets with fewer graded trades |
-| `top_n` | `5` | mirror the top‑N ranked wallets |
+| `min_trades` | `15` | ignore wallets with fewer graded trades |
+| `top_n` | `40` | mirror the top‑N ranked wallets |
 | `refresh_interval_seconds` | `300` | how often to re‑rank |
 | `max_wallets_tracked` | `200` | cap on the wallet universe |
+| `backfill_windows` | `180` | on live startup, backfill this many recent resolved 5‑min markets + trades so the leaderboard populates immediately (0 disables; ignored in sim) |
 | `scoring.win_rate_weight` | `0.5` | weight on win rate |
 | `scoring.pnl_weight` | `0.4` | weight on (normalized) volume‑weighted PnL |
 | `scoring.volume_weight` | `0.1` | weight on raw volume (activity) |
@@ -181,11 +183,14 @@ from `.env`.
 | key | default | meaning |
 |-----|---------|---------|
 | `starting_bankroll` | `1000.0` | virtual USDC starting equity |
-| `bankroll_fraction` | `0.02` | fraction of current bankroll per copied trade |
+| `bankroll_fraction` | `0.10` | fraction of current bankroll per copied trade |
 | `slippage_bps` | `50` | simulated slippage in basis points (50 = 0.50%) |
 | `min_position_usd` | `1.0` | skip copied trades smaller than this |
-| `max_open_positions` | `20` | cap on simultaneous open positions |
-| `max_position_usd` | `100.0` | hard cap per position |
+| `max_open_positions` | `50` | cap on simultaneous open positions |
+| `max_position_usd` | `500.0` | hard cap per position |
+| `max_entry_price` | `0.65` | skip copies priced above this (worst risk/reward longs) |
+| `min_entry_price` | `0.0` | skip copies priced below this (0 = off) |
+| `max_drawdown_pct` | `0.25` | drawdown circuit breaker: pause new entries if equity falls this far below start (0 = off; auto-resumes on recovery) |
 | `mirror_sells` | `false` | only mirror entries (BUYs) when false |
 
 ### `sim` (offline simulator)

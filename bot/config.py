@@ -77,6 +77,9 @@ class EngineConfig:
     min_position_usd: float = 1.0
     max_open_positions: int = 50
     max_position_usd: float = 500.0
+    max_entry_price: float = 0.65
+    min_entry_price: float = 0.0
+    max_drawdown_pct: float = 0.25
     mirror_sells: bool = False
 
 

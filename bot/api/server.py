@@ -143,6 +143,8 @@ def create_app(cfg: Config | None = None) -> FastAPI:
             "updated_at": int(time.time()),
             "mode": cfg.data.mode,
             "enabled": engine.enabled,
+            "halted": engine.halted,
+            "max_drawdown_pct": cfg.engine.max_drawdown_pct,
             "bankroll": {
                 "starting": cfg.engine.starting_bankroll,
                 "cash": round(engine.cash, 2),

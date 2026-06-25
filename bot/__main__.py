@@ -175,6 +175,22 @@ async def cmd_cycle(cfg) -> None:
 # --------------------------------------------------------------------------- #
 # run / serve / all
 # --------------------------------------------------------------------------- #
+def cmd_reset(cfg) -> None:
+    """Wipe paper state (positions, fills, equity curve, bankroll) for a clean
+    start. Keeps learned market/trade/wallet history so the leaderboard persists."""
+    db = _open(cfg)
+    for tbl in ("paper_fills", "paper_positions", "bankroll_history"):
+        db.execute(f"DELETE FROM {tbl}")
+    db.set_state("cash", cfg.engine.starting_bankroll)
+    db.set_state("realized_pnl", 0.0)
+    db.set_state("enabled", True)
+    db.close()
+    console.print(Panel.fit(
+        f"Paper state reset → bankroll ${cfg.engine.starting_bankroll:,.2f}, "
+        "positions & history cleared. (Tracked wallets kept.)",
+        border_style="green"))
+
+
 async def cmd_run(cfg) -> None:
     db = _open(cfg)
     bot = Bot(cfg, db)
@@ -211,7 +227,7 @@ async def cmd_all(cfg) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(prog="bot", description="Polymarket BTC 5-min paper-trading bot")
     parser.add_argument("command", nargs="?", default="run",
-                        choices=["run", "probe", "cycle", "serve", "all"])
+                        choices=["run", "probe", "cycle", "serve", "all", "reset"])
     parser.add_argument("--config", default=None, help="path to config.yaml")
     args = parser.parse_args()
 
@@ -220,6 +236,8 @@ def main() -> None:
 
     if args.command == "probe":
         asyncio.run(cmd_probe(cfg))
+    elif args.command == "reset":
+        cmd_reset(cfg)
     elif args.command == "cycle":
         asyncio.run(cmd_cycle(cfg))
     elif args.command == "serve":

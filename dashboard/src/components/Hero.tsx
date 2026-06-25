@@ -55,16 +55,23 @@ export default function Hero({ snap }: { snap: Snapshot | null }) {
         </div>
 
         <div className="flex flex-col items-end gap-3">
-          <span
-            className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
-              on ? "bg-up/10 text-up" : "bg-slate-500/10 text-slate-400"
-            }`}
-          >
+          {snap?.halted ? (
+            <span className="flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium bg-amber-400/10 text-amber-400">
+              <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse-dot" />
+              Drawdown guard · paused
+            </span>
+          ) : (
             <span
-              className={`h-2 w-2 rounded-full ${on ? "bg-up animate-pulse-dot" : "bg-slate-500"}`}
-            />
-            {on ? "Bot running" : "Bot paused"}
-          </span>
+              className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
+                on ? "bg-up/10 text-up" : "bg-slate-500/10 text-slate-400"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${on ? "bg-up animate-pulse-dot" : "bg-slate-500"}`}
+              />
+              {on ? "Bot running" : "Bot paused"}
+            </span>
+          )}
           <button
             onClick={toggle}
             disabled={busy}
