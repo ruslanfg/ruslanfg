@@ -1,0 +1,16 @@
+# Core
+httpx>=0.27,<0.29
+pyyaml>=6.0
+python-dotenv>=1.0
+rich>=13.7
+
+# Backend API
+fastapi>=0.111
+uvicorn[standard]>=0.30
+websockets>=12.0
+
+# On-chain trader tracking (Polygon CTF Exchange logs). Optional at runtime —
+# the bot degrades gracefully if these are not installed.
+web3>=6.15,<8
+eth-abi>=5.0
+eth-utils>=4.0

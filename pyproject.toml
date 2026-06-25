@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polymarket-btc5m-paperbot"
+version = "0.1.0"
+description = "Paper-trading copy bot for Polymarket's BTC 5-minute Up/Down market, with a live dashboard. Paper trading only — no real funds, no wallet keys."
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.27,<0.29",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "rich>=13.7",
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "websockets>=12.0",
+]
+
+[project.optional-dependencies]
+onchain = ["web3>=6.15,<8", "eth-abi>=5.0", "eth-utils>=4.0"]
+
+[tool.setuptools]
+packages = ["bot", "bot.sources", "bot.api"]
