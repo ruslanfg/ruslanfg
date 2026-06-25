@@ -31,7 +31,7 @@ data:
   enable_onchain: false
 
   # Networking
-  poll_interval_seconds: 15        # main loop cadence
+  poll_interval_seconds: 5         # main loop cadence (lower = catches more entries)
   http_timeout_seconds: 12
   max_retries: 3
   retry_backoff_seconds: 1
@@ -52,8 +52,8 @@ market:
 wallets:
   # Trader tracking / ranking.
   lookback_days: 7                 # history window for scoring (default 7)
-  min_trades: 20                   # ignore wallets with fewer trades in the window
-  top_n: 5                         # mirror trades from the top-N ranked wallets
+  min_trades: 15                   # ignore wallets with fewer trades in the window
+  top_n: 40                        # mirror trades from the top-N ranked wallets
   refresh_interval_seconds: 300    # how often to re-rank tracked wallets
   max_wallets_tracked: 200         # cap on universe size kept in the DB
   # LIVE cold-start: on startup, backfill this many recent resolved BTC 5-min
@@ -73,11 +73,11 @@ wallets:
 engine:
   # Paper-trading bankroll & sizing.
   starting_bankroll: 1000.0        # USDC (paper) starting equity
-  bankroll_fraction: 0.02          # fraction of CURRENT bankroll per copied trade
+  bankroll_fraction: 0.10          # fraction of CURRENT bankroll per copied trade
   slippage_bps: 50                 # simulated slippage in basis points (50 = 0.50%)
   min_position_usd: 1.0            # skip copied trades smaller than this
-  max_open_positions: 20           # safety cap on simultaneously open paper positions
-  max_position_usd: 100.0          # hard cap on any single paper position
+  max_open_positions: 50           # safety cap on simultaneously open paper positions
+  max_position_usd: 500.0          # hard cap on any single paper position
   # Only mirror a source wallet's ENTRY (BUY) into the live 5-min market.
   mirror_sells: false
 

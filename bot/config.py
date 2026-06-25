@@ -36,7 +36,7 @@ class DataConfig:
     ws_url: str = "wss://ws-subscriptions-clob.polymarket.com/ws/"
     polygon_rpc_url: str = ""
     enable_onchain: bool = False
-    poll_interval_seconds: float = 15.0
+    poll_interval_seconds: float = 5.0
     http_timeout_seconds: float = 12.0
     max_retries: int = 3
     retry_backoff_seconds: float = 1.0
@@ -61,8 +61,8 @@ class ScoringConfig:
 @dataclass
 class WalletsConfig:
     lookback_days: int = 7
-    min_trades: int = 20
-    top_n: int = 5
+    min_trades: int = 15
+    top_n: int = 40
     refresh_interval_seconds: float = 300.0
     max_wallets_tracked: int = 200
     backfill_windows: int = 180
@@ -72,11 +72,11 @@ class WalletsConfig:
 @dataclass
 class EngineConfig:
     starting_bankroll: float = 1000.0
-    bankroll_fraction: float = 0.02
+    bankroll_fraction: float = 0.10
     slippage_bps: float = 50.0
     min_position_usd: float = 1.0
-    max_open_positions: int = 20
-    max_position_usd: float = 100.0
+    max_open_positions: int = 50
+    max_position_usd: float = 500.0
     mirror_sells: bool = False
 
 
