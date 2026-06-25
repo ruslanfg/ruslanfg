@@ -81,7 +81,7 @@ engine:
   # Risk management:
   # Skip copies whose fill price is outside [min,max]. High-priced longs have the
   # worst payoff (a loss costs the full stake, a win pays little), so we cap entries.
-  max_entry_price: 0.65            # skip entries priced above this (0.999 = off)
+  max_entry_price: 0.85            # skip entries priced above this (0.999 = off)
   min_entry_price: 0.0             # skip entries priced below this (0 = off)
   # Drawdown circuit breaker: stop opening NEW positions once equity falls below
   # (1 - max_drawdown_pct) of the starting bankroll. Open positions still resolve.

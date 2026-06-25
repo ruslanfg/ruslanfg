@@ -188,7 +188,7 @@ from `.env`.
 | `min_position_usd` | `1.0` | skip copied trades smaller than this |
 | `max_open_positions` | `50` | cap on simultaneous open positions |
 | `max_position_usd` | `500.0` | hard cap per position |
-| `max_entry_price` | `0.65` | skip copies priced above this (worst risk/reward longs) |
+| `max_entry_price` | `0.85` | skip copies priced above this (worst risk/reward longs) |
 | `min_entry_price` | `0.0` | skip copies priced below this (0 = off) |
 | `max_drawdown_pct` | `0.25` | drawdown circuit breaker: pause new entries if equity falls this far below start (0 = off; auto-resumes on recovery) |
 | `mirror_sells` | `false` | only mirror entries (BUYs) when false |
