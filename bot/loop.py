@@ -96,9 +96,10 @@ class Bot:
                 )
 
     async def _maybe_rerank(self, report: CycleReport) -> None:
-        if now() - self._last_rank >= self.cfg.wallets.refresh_interval_seconds:
+        assert self.provider is not None
+        if self.provider.now() - self._last_rank >= self.cfg.wallets.refresh_interval_seconds:
             rank_wallets(self.db, self.cfg)
-            self._last_rank = now()
+            self._last_rank = self.provider.now()
             report.reranked = True
 
     async def run_once(self) -> CycleReport:
@@ -147,7 +148,7 @@ class Bot:
                 pid = self.engine.mirror(market, t, quote)
                 if pid:
                     report.mirrored += 1
-        self._last_poll = now()
+        self._last_poll = self.provider.now()
 
         # 5) record equity point
         self.engine.snapshot_equity()
