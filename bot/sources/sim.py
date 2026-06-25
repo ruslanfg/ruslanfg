@@ -281,6 +281,9 @@ class SimProvider:
     # ------------------------------------------------------------------ #
     # history bootstrap (sim-only): seed resolved markets + wallet trades
     # ------------------------------------------------------------------ #
+    async def prepare_history(self, db: Database, cfg) -> int:
+        return self.bootstrap_history(db, cfg.wallets.lookback_days)
+
     def bootstrap_history(self, db: Database, lookback_days: int, max_windows: int = 300) -> int:
         now = self._now()
         w_now = self.window_index(now)

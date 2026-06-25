@@ -56,6 +56,11 @@ wallets:
   top_n: 5                         # mirror trades from the top-N ranked wallets
   refresh_interval_seconds: 300    # how often to re-rank tracked wallets
   max_wallets_tracked: 200         # cap on universe size kept in the DB
+  # LIVE cold-start: on startup, backfill this many recent resolved BTC 5-min
+  # markets (+ their trades) so the leaderboard is populated immediately instead
+  # of slowly filling over hours. 0 disables. ~180 ≈ 15h of 5-min markets.
+  # (Ignored in sim mode, which seeds its own history.)
+  backfill_windows: 180
 
   # Scoring function:  score = (win_rate ** wr_exp) weighted-combined with a
   # volume-weighted, normalized realized PnL. Weights are normalized internally.

@@ -155,6 +155,18 @@ class GammaClient:
             log.warning("gamma fallback discovery failed: %s", exc)
         return None
 
+    async def get_market_by_slug(self, slug: str) -> Optional[Market]:
+        """Fetch a single market by its slug (used for backfilling past windows)."""
+        for url in (f"{self.base}/markets", f"{self.base}/events"):
+            try:
+                data = await self.http.get_json(url, {"slug": slug})
+                markets = await self._markets_from_response(data)
+                if markets:
+                    return markets[0]
+            except Exception as exc:  # noqa: BLE001
+                log.debug("gamma get_market_by_slug(%s) via %s failed: %s", slug, url, exc)
+        return None
+
     async def ping(self) -> bool:
         """Raw reachability probe — raises on network/HTTP failure (e.g. 403)."""
         await self.http.get_json(f"{self.base}/markets", {"limit": 1})

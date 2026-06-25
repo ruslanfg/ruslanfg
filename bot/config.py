@@ -65,6 +65,7 @@ class WalletsConfig:
     top_n: int = 5
     refresh_interval_seconds: float = 300.0
     max_wallets_tracked: int = 200
+    backfill_windows: int = 180
     scoring: ScoringConfig = field(default_factory=ScoringConfig)
 
 

@@ -106,6 +106,11 @@ class Provider(abc.ABC):
         import time
         return int(time.time())
 
+    async def prepare_history(self, db, cfg) -> int:
+        """Seed/backfill historical markets+trades so wallet ranking has data on
+        startup. Default: no-op. Sim seeds synthetically; Live backfills from API."""
+        return 0
+
     async def get_quotes(self, market: Market) -> tuple[Optional[Quote], Optional[Quote]]:
         up = await self.get_quote(market.up_token_id)
         down = await self.get_quote(market.down_token_id)

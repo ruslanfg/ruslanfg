@@ -16,7 +16,6 @@ from .logging_setup import get_logger
 from .models import Market
 from .provider import build_provider
 from .sources.base import Provider
-from .sources.sim import SimProvider
 from .wallets import rank_wallets, top_wallet_addresses
 
 log = get_logger("loop")
@@ -49,9 +48,9 @@ class Bot:
 
     async def setup(self) -> None:
         self.provider = await build_provider(self.cfg, self.db)
-        # Seed history so wallet ranking has data immediately (sim only).
-        if isinstance(self.provider, SimProvider):
-            self.provider.bootstrap_history(self.db, self.cfg.wallets.lookback_days)
+        # Seed/backfill history so wallet ranking has data immediately:
+        # sim seeds synthetically; live backfills recent resolved markets + trades.
+        await self.provider.prepare_history(self.db, self.cfg)
         rank_wallets(self.db, self.cfg)
         self._last_rank = now()
         self.engine.snapshot_equity()

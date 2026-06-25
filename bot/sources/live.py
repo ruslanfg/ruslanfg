@@ -6,16 +6,17 @@ which sources returned data vs failed.
 """
 from __future__ import annotations
 
+import asyncio
 from typing import Optional
 
 from ..config import Config
-from ..db import Database
+from ..db import Database, now
 from ..logging_setup import get_logger
 from ..models import Market, ObservedTrade, Quote, SourceStatus
 from .base import HttpClient, Provider
 from .clob import ClobClient
 from .data_api import DataApiClient
-from .gamma import GammaClient
+from .gamma import GammaClient, WINDOW_SECONDS, btc_slug, current_window_ts
 from .onchain import OnchainClient
 
 log = get_logger("sources.live")
@@ -38,6 +39,56 @@ class LiveProvider(Provider):
         self.onchain = OnchainClient(cfg, self.http)
 
     # ------------------------------------------------------------------ #
+    async def prepare_history(self, db: Database, cfg: Config) -> int:
+        return await self.backfill(db, cfg.wallets.backfill_windows)
+
+    async def backfill(self, db: Database, windows: int, concurrency: int = 8) -> int:
+        """Populate the leaderboard on startup: fetch the last `windows` resolved
+        BTC 5-min markets (by deterministic slug) and their trades, so wallet
+        ranking has real graded history immediately instead of filling over hours.
+        """
+        if windows <= 0:
+            return 0
+        base = current_window_ts()
+        timestamps = [base - i * WINDOW_SECONDS for i in range(1, windows + 1)]
+        sem = asyncio.Semaphore(concurrency)
+        log.info("live backfill: fetching up to %d recent 5-min markets…", windows)
+
+        async def fetch_market(ts: int) -> Optional[Market]:
+            async with sem:
+                try:
+                    return await self.gamma.get_market_by_slug(btc_slug(ts))
+                except Exception:  # noqa: BLE001
+                    return None
+
+        markets = await asyncio.gather(*[fetch_market(ts) for ts in timestamps])
+        resolved = [m for m in markets if m and m.resolved_outcome]
+        if not resolved:
+            self.db.record_source("gamma", ok=False,
+                                  error="backfill found no resolved markets (unreachable?)")
+            log.warning("live backfill: no resolved markets fetched (egress blocked?)")
+            return 0
+        db.bulk_upsert_markets([{**m.as_db(), "resolved_at": now()} for m in resolved])
+
+        async def fetch_trades(m: Market) -> list[ObservedTrade]:
+            async with sem:
+                try:
+                    return await self.data_api.get_trades(condition_id=m.condition_id,
+                                                          taker_only=False)
+                except Exception:  # noqa: BLE001
+                    return []
+
+        batches = await asyncio.gather(*[fetch_trades(m) for m in resolved])
+        flat = [t.as_db() for batch in batches for t in batch]
+        inserted = db.bulk_insert_trades(flat) if flat else 0
+        self.db.record_source("gamma", ok=True,
+                              detail=f"backfilled {len(resolved)} markets")
+        self.db.record_source("data_api", ok=True,
+                              detail=f"backfilled {inserted} trades")
+        log.info("live backfill: %d/%d markets resolved, %d trades ingested",
+                 len(resolved), windows, inserted)
+        return inserted
+
     async def discover_market(self) -> Optional[Market]:
         try:
             m = await self.gamma.discover_btc_5m_market()
