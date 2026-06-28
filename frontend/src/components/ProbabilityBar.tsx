@@ -32,7 +32,7 @@ export function ProbabilityBar({
           {segs.map((s) => (
             <div
               key={s.label}
-              className={`relative ${s.bar}`}
+              className={`relative transition-[width] duration-500 ease-out ${s.bar}`}
               style={{ width: `${Math.max(0, s.value * 100)}%` }}
               title={`${s.label}: ${pct(s.value)}`}
             >

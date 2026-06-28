@@ -107,7 +107,7 @@ export function MatchCardView({ m }: { m: Match }) {
 
   return (
     <div
-      className={`card animate-fade-in relative flex flex-col overflow-hidden p-4 pl-5 ${
+      className={`card card-hover animate-fade-in relative flex flex-col overflow-hidden p-4 pl-5 ${
         m.status === "live" ? "shadow-liveGlow" : ""
       }`}
     >

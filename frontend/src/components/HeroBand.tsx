@@ -8,7 +8,9 @@ import { CssBall } from "./CssBall";
 const HeroBall = lazy(() => import("./HeroBall"));
 
 function useMobile() {
-  const [mobile, setMobile] = useState(false);
+  const [mobile, setMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches
+  );
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 768px)");
     const sync = () => setMobile(mq.matches);
@@ -104,16 +106,16 @@ export function HeroBand({ data, refreshTick }: { data: Dashboard | null; refres
       </div>
 
       <div
-        className={`relative flex h-full ${
-          mobile ? "flex-col items-center gap-3 py-4" : "flex-row items-center justify-between gap-6"
+        className={`relative flex ${
+          mobile ? "flex-col items-center gap-3 py-4" : "h-full flex-row items-center justify-between gap-6"
         }`}
       >
         {/* title block */}
         <div className={`${mobile ? "order-2 text-center" : "max-w-[55%]"}`}>
-          <h1 className="font-display text-[clamp(28px,5vw,46px)] font-bold leading-[0.95] text-slate-50">
+          <h1 className="bg-gradient-to-br from-white via-slate-100 to-floodlight bg-clip-text font-display text-[clamp(30px,5.4vw,52px)] font-bold leading-[0.92] text-transparent drop-shadow-[0_2px_24px_rgba(56,225,214,0.18)]">
             {t?.name || "FIFA World Cup 2026"}
           </h1>
-          <p className="mt-1.5 text-[12px] uppercase tracking-[0.16em] text-slate-400">
+          <p className="mt-1.5 bg-gradient-to-r from-floodlight/90 to-slate-400 bg-clip-text text-[12px] uppercase tracking-[0.18em] text-transparent">
             Prediction &amp; Market Dashboard
           </p>
           <p className="mt-0.5 text-[12px] text-slate-500">

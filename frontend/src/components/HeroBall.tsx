@@ -1,7 +1,8 @@
 import { Component, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Environment, Float, Lightformer } from "@react-three/drei";
+import { ContactShadows, Environment, Float, Lightformer, Sparkles } from "@react-three/drei";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import { CssBall } from "./CssBall";
 
 // ---- Panel centers: 12 pentagon (icosahedron vertices) + 20 hexagon
@@ -161,32 +162,55 @@ function Scene({
 }) {
   return (
     <>
-      <ambientLight intensity={0.18} color={0x0a0e14} />
+      <ambientLight intensity={0.2} color={0x0a0e14} />
       {/* KEY — floodlight spot, upper-left, defines rim + specular hot-spot */}
-      <spotLight position={[-4, 5, 4]} angle={0.6} penumbra={0.6} decay={0} intensity={3.2} color={0xd6e8ff} castShadow />
+      <spotLight position={[-4, 5, 4]} angle={0.6} penumbra={0.6} decay={0} intensity={2.7} color={0xd6e8ff} castShadow />
       {/* FILL — cool, upper-right, keeps pentagons off pure black */}
-      <directionalLight position={[5, 3, 2]} intensity={1.1} color={0x9fb6d8} />
-      {/* RIM — cyan broadcast back-light (desktop only) */}
-      {!mobile && <directionalLight position={[0, -1, -5]} intensity={2.2} color={0x38e1d6} />}
+      <directionalLight position={[5, 3, 2]} intensity={1.15} color={0x9fb6d8} />
+      {/* RIM — cyan broadcast back-light, punched up so the silhouette glows */}
+      <directionalLight position={[0, -1.5, -5]} intensity={mobile ? 2.4 : 3.6} color={0x38e1d6} />
+      {/* warm kicker for a touch of stadium gold on the lower edge */}
+      {!mobile && <pointLight position={[2, -3, 1]} intensity={6} distance={8} decay={2} color={0xffcaa0} />}
 
       <Ball active={active} reducedMotion={reducedMotion} refreshTick={refreshTick} />
 
+      {/* floating stadium dust / embers around the ball */}
+      {!mobile && (
+        <Sparkles
+          count={36}
+          scale={[5, 4, 4]}
+          size={2.4}
+          speed={reducedMotion ? 0 : 0.35}
+          opacity={0.5}
+          color="#9fd8ff"
+        />
+      )}
+
       <ContactShadows
-        position={[0, -1.25, 0]}
-        opacity={0.55}
-        scale={6}
-        blur={2.6}
+        position={[0, -1.3, 0]}
+        opacity={0.6}
+        scale={6.5}
+        blur={2.8}
         far={3}
         resolution={mobile ? 256 : 512}
-        color="#04111a"
+        color="#031019"
       />
 
       {/* In-code studio reflections for the clearcoat (no HDRI fetch). */}
       <Environment resolution={128} frames={1}>
-        <Lightformer intensity={2} position={[-3, 3, 3]} scale={[5, 5, 1]} color="#d6e8ff" />
-        <Lightformer intensity={1.2} position={[4, 2, 2]} scale={[4, 4, 1]} color="#9fb6d8" />
-        <Lightformer intensity={0.8} position={[0, -2, -4]} scale={[6, 6, 1]} color="#38e1d6" />
+        <Lightformer intensity={2.2} position={[-3, 3, 3]} scale={[5, 5, 1]} color="#d6e8ff" />
+        <Lightformer intensity={1.3} position={[4, 2, 2]} scale={[4, 4, 1]} color="#9fb6d8" />
+        <Lightformer intensity={1.1} position={[0, -2, -4]} scale={[6, 6, 1]} color="#38e1d6" />
+        <Lightformer intensity={0.7} position={[0, 4, 1]} scale={[8, 2, 1]} color="#ffffff" />
       </Environment>
+
+      {/* cinematic bloom so the rim + specular glow like a televised match ball.
+          Desktop only — keeps mobile light and avoids a heavier render path. */}
+      {!mobile && (
+        <EffectComposer enableNormalPass={false} multisampling={4}>
+          <Bloom mipmapBlur intensity={0.6} luminanceThreshold={0.9} luminanceSmoothing={0.2} radius={0.65} />
+        </EffectComposer>
+      )}
     </>
   );
 }
@@ -223,8 +247,12 @@ export default function HeroBall({ size = 300, refreshTick = 0 }: { size?: numbe
   const [failed, setFailed] = useState(false);
   const [inView, setInView] = useState(true);
   const [docVisible, setDocVisible] = useState(true);
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [mobile, setMobile] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+  const [mobile, setMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches
+  );
   const showCanvas = supported && !failed;
 
   useEffect(() => {
@@ -255,21 +283,38 @@ export default function HeroBall({ size = 300, refreshTick = 0 }: { size?: numbe
     return () => io.disconnect();
   }, [showCanvas]);
 
+  // Safety: r3f sometimes measures a freshly laid-out / lazy-mounted container
+  // as 0 (the canvas then sticks at its default 300x150). Nudge a re-measure
+  // once layout has settled so the canvas adopts the real container size.
+  useEffect(() => {
+    if (!showCanvas) return;
+    const fire = () => window.dispatchEvent(new Event("resize"));
+    const raf = requestAnimationFrame(fire);
+    const t1 = window.setTimeout(fire, 120);
+    const t2 = window.setTimeout(fire, 380);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [showCanvas, size]);
+
   const active = inView && docVisible && !reducedMotion;
 
   return (
-    <div ref={wrapRef} className="grid place-items-center" style={{ width: size, height: size }}>
+    <div ref={wrapRef} className="relative grid place-items-center" style={{ width: size, height: size }}>
       {!showCanvas ? (
         <CssBall size={size} />
       ) : (
         <GLBoundary fallback={<CssBall size={size} />} onError={() => setFailed(true)}>
           <Canvas
+            key={size}
             aria-hidden
             dpr={[1, mobile ? 1.5 : 1.75]}
             frameloop={active ? "always" : "demand"}
             gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
             camera={{ position: [0, 0, 4.4], fov: 30 }}
-            style={{ width: size, height: size }}
+            style={{ width: size, height: size, position: "absolute", inset: 0 }}
           >
             <Scene active={active} reducedMotion={reducedMotion} refreshTick={refreshTick} mobile={mobile} />
           </Canvas>
