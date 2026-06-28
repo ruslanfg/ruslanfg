@@ -156,5 +156,50 @@ class DashboardSnapshot(BaseModel):
     sources: list[SourceStatus] = Field(default_factory=list)
     matches: list[MatchCard] = Field(default_factory=list)
     smart_money: SmartMoney = Field(default_factory=SmartMoney)
+    stats: "TournamentStats" = Field(default_factory=lambda: TournamentStats())
+    power_rankings: list["PowerRankingRow"] = Field(default_factory=list)
+    value_board: list["ValueRow"] = Field(default_factory=list)
     live_count: int = 0
     value_count: int = 0
+
+
+class TournamentStats(BaseModel):
+    """Tournament-wide aggregates, all DERIVED from fetched data (never invented)."""
+    matches_total: int = 0
+    live: int = 0
+    upcoming: int = 0
+    finished: int = 0
+    goals_total: Optional[int] = None  # across finished matches
+    avg_goals: Optional[float] = None  # per finished match
+    teams_ranked: int = 0
+    top_team: Optional[str] = None
+    top_team_elo: Optional[float] = None
+    biggest_edge: Optional[float] = None  # largest model-vs-market edge found
+    value_count: int = 0
+
+
+class PowerRankingRow(BaseModel):
+    rank: int
+    team_id: Optional[str] = None
+    name: str
+    elo: float
+    matches: int
+    provisional: bool = False
+    form: Optional[list[str]] = None
+    form_ppg: Optional[float] = None
+
+
+class ValueRow(BaseModel):
+    match_id: str
+    home: str
+    away: str
+    status: str
+    utc_date: Optional[str] = None
+    outcome: str  # human label, e.g. "Brazil to win" / "Draw"
+    model_pct: float
+    market_pct: float
+    edge: float
+
+
+# Resolve forward references used in DashboardSnapshot (classes defined above).
+DashboardSnapshot.model_rebuild()

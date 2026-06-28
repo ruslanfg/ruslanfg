@@ -30,13 +30,16 @@ from .models import (
     MatchCard,
     ModelEstimate,
     OutcomeRow,
+    PowerRankingRow,
     Score,
     SmartMoney,
     SourceStatus,
     TeamRef,
+    TournamentStats,
     Trader,
     TraderPosition,
     ValueFlag,
+    ValueRow,
 )
 from .sources.football import FootballSource, recent_form
 from .sources.odds import OddsSource, match_odds_to_fixture, normalize_team
@@ -208,6 +211,11 @@ class Aggregator:
             )
             live_count = sum(1 for c in cards if c.status == "live")
 
+            # --- Derived tournament stats (no invented numbers) ---
+            power_rankings = _build_power_rankings(elo, get_form, self.cfg)
+            value_board = _build_value_board(cards)
+            stats = _build_stats(cards, power_rankings, value_board, live_count, value_count)
+
             # --- Smart money (leaderboard + open positions) ---
             smart = await self._build_smart_money(
                 pm_leaderboard, wc_terms, wc_condition_ids, do_baseline
@@ -219,6 +227,9 @@ class Aggregator:
                 sources=self._source_statuses(),
                 matches=cards,
                 smart_money=smart,
+                stats=stats,
+                power_rankings=power_rankings,
+                value_board=value_board,
                 live_count=live_count,
                 value_count=value_count,
             )
@@ -517,6 +528,92 @@ class Aggregator:
             if lu:
                 card["lineups_available"] = True
                 card["lineups"] = Lineups(**lu).model_dump()
+
+
+def _build_power_rankings(elo, get_form, cfg) -> list[PowerRankingRow]:
+    """All teams that have played, ranked by Elo, with recent form attached."""
+    ranked = sorted(
+        ((tid, v) for tid, v in elo.ratings().items() if v["matches"] > 0),
+        key=lambda kv: kv[1]["rating"],
+        reverse=True,
+    )
+    rows: list[PowerRankingRow] = []
+    for i, (tid, v) in enumerate(ranked[:48]):
+        form = get_form(tid)
+        rows.append(
+            PowerRankingRow(
+                rank=i + 1,
+                team_id=tid,
+                name=v["name"],
+                elo=round(v["rating"], 1),
+                matches=v["matches"],
+                provisional=v["matches"] < cfg.model.provisional_matches,
+                form=form["results"] if form else None,
+                form_ppg=form["ppg"] if form else None,
+            )
+        )
+    return rows
+
+
+def _build_value_board(cards: list[MatchCard]) -> list[ValueRow]:
+    """Every positive model-vs-market edge across all matches, biggest first."""
+    rows: list[ValueRow] = []
+    for c in cards:
+        if not c.market:
+            continue
+        for row in c.market.outcomes:
+            if row.value.edge is None or row.value.edge <= 0:
+                continue
+            if row.model_pct is None or row.sportsbook_pct is None:
+                continue
+            label = (
+                f"{c.home.name} to win"
+                if row.key == "home"
+                else "Draw"
+                if row.key == "draw"
+                else f"{c.away.name} to win"
+            )
+            rows.append(
+                ValueRow(
+                    match_id=c.id,
+                    home=c.home.name,
+                    away=c.away.name,
+                    status=c.status,
+                    utc_date=c.utc_date,
+                    outcome=label,
+                    model_pct=row.model_pct,
+                    market_pct=row.sportsbook_pct,
+                    edge=row.value.edge,
+                )
+            )
+    rows.sort(key=lambda r: r.edge, reverse=True)
+    return rows[:12]
+
+
+def _build_stats(
+    cards: list[MatchCard],
+    power_rankings: list[PowerRankingRow],
+    value_board: list[ValueRow],
+    live_count: int,
+    value_count: int,
+) -> TournamentStats:
+    finished = [c for c in cards if c.status == "finished"]
+    scored = [c for c in finished if c.score.home is not None and c.score.away is not None]
+    goals = sum((c.score.home or 0) + (c.score.away or 0) for c in scored)
+    top = power_rankings[0] if power_rankings else None
+    return TournamentStats(
+        matches_total=len(cards),
+        live=live_count,
+        upcoming=sum(1 for c in cards if c.status == "upcoming"),
+        finished=len(finished),
+        goals_total=goals if scored else None,
+        avg_goals=round(goals / len(scored), 2) if scored else None,
+        teams_ranked=len(power_rankings),
+        top_team=top.name if top else None,
+        top_team_elo=round(top.elo) if top else None,
+        biggest_edge=value_board[0].edge if value_board else None,
+        value_count=value_count,
+    )
 
 
 def _market_is_wc(m: dict[str, Any], fixture_norms: set[str], wc_terms: tuple[str, ...]) -> bool:

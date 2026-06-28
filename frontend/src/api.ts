@@ -112,6 +112,43 @@ export interface SmartMoney {
   leaderboard: Trader[];
 }
 
+export interface TournamentStats {
+  matches_total: number;
+  live: number;
+  upcoming: number;
+  finished: number;
+  goals_total: number | null;
+  avg_goals: number | null;
+  teams_ranked: number;
+  top_team: string | null;
+  top_team_elo: number | null;
+  biggest_edge: number | null;
+  value_count: number;
+}
+
+export interface PowerRankingRow {
+  rank: number;
+  team_id: string | null;
+  name: string;
+  elo: number;
+  matches: number;
+  provisional: boolean;
+  form: string[] | null;
+  form_ppg: number | null;
+}
+
+export interface ValueRow {
+  match_id: string;
+  home: string;
+  away: string;
+  status: string;
+  utc_date: string | null;
+  outcome: string;
+  model_pct: number;
+  market_pct: number;
+  edge: number;
+}
+
 export interface Dashboard {
   updated_at: number;
   disclaimer: string;
@@ -119,6 +156,9 @@ export interface Dashboard {
   sources: SourceStatus[];
   matches: MatchCard[];
   smart_money: SmartMoney;
+  stats: TournamentStats;
+  power_rankings: PowerRankingRow[];
+  value_board: ValueRow[];
   live_count: number;
   value_count: number;
 }
