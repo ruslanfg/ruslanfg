@@ -124,6 +124,7 @@ function Ball({
   }, [refreshTick, active, invalidate]);
 
   useFrame((_, delta) => {
+    if (!active) return; // no animation work while paused (offscreen/hidden/reduced-motion)
     const d = Math.min(delta, 0.05);
     if (ballRef.current) {
       const base = reducedMotion ? 0 : 0.18;
@@ -168,9 +169,7 @@ function Scene({
       {/* RIM — cyan broadcast back-light (desktop only) */}
       {!mobile && <directionalLight position={[0, -1, -5]} intensity={2.2} color={0x38e1d6} />}
 
-      <Float speed={0} floatIntensity={0}>
-        <Ball active={active} reducedMotion={reducedMotion} refreshTick={refreshTick} />
-      </Float>
+      <Ball active={active} reducedMotion={reducedMotion} refreshTick={refreshTick} />
 
       <ContactShadows
         position={[0, -1.25, 0]}
@@ -193,10 +192,16 @@ function Scene({
 }
 
 // --- Error boundary: any WebGL/context-loss error swaps to the CSS ball -------
-class GLBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+class GLBoundary extends Component<
+  { fallback: ReactNode; children: ReactNode; onError?: () => void },
+  { failed: boolean }
+> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
+  }
+  componentDidCatch() {
+    this.props.onError?.();
   }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
@@ -215,10 +220,12 @@ function webglSupported(): boolean {
 export default function HeroBall({ size = 300, refreshTick = 0 }: { size?: number; refreshTick?: number }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [supported] = useState(webglSupported);
+  const [failed, setFailed] = useState(false);
   const [inView, setInView] = useState(true);
   const [docVisible, setDocVisible] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [mobile, setMobile] = useState(false);
+  const showCanvas = supported && !failed;
 
   useEffect(() => {
     const rm = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -240,21 +247,24 @@ export default function HeroBall({ size = 300, refreshTick = 0 }: { size?: numbe
   }, []);
 
   useEffect(() => {
-    if (!wrapRef.current) return;
+    // Only observe while the canvas is actually mounted; once we fall back to
+    // the CSS ball there is nothing to pause, so we stop updating inView.
+    if (!wrapRef.current || !showCanvas) return;
     const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.05 });
     io.observe(wrapRef.current);
     return () => io.disconnect();
-  }, []);
+  }, [showCanvas]);
 
   const active = inView && docVisible && !reducedMotion;
 
   return (
     <div ref={wrapRef} className="grid place-items-center" style={{ width: size, height: size }}>
-      {!supported ? (
+      {!showCanvas ? (
         <CssBall size={size} />
       ) : (
-        <GLBoundary fallback={<CssBall size={size} />}>
+        <GLBoundary fallback={<CssBall size={size} />} onError={() => setFailed(true)}>
           <Canvas
+            aria-hidden
             dpr={[1, mobile ? 1.5 : 1.75]}
             frameloop={active ? "always" : "demand"}
             gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}

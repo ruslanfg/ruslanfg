@@ -52,7 +52,7 @@ function StatusBadge({ m }: { m: Match }) {
     return (
       <span className="chip font-display bg-floodlight/15 text-floodlight">
         <span className="h-1.5 w-1.5 rounded-full bg-floodlight animate-live-beat" />
-        LIVE {m.minute ? <span className="numeric ml-0.5">~{m.minute}'</span> : null}
+        LIVE {m.minute ? <span className="numeric ml-0.5 text-slate-100">~{m.minute}'</span> : null}
       </span>
     );
   }
@@ -140,6 +140,7 @@ export function MatchCardView({ m }: { m: Match }) {
         <div className="mt-2">
           <button
             onClick={() => setShowWhy((v) => !v)}
+            aria-expanded={showWhy}
             className="text-[11px] text-accent/90 hover:text-accent"
           >
             {showWhy ? "Hide" : "Why these numbers?"}
@@ -166,6 +167,7 @@ export function MatchCardView({ m }: { m: Match }) {
         <div className="mt-3">
           <button
             onClick={() => setShowXI((v) => !v)}
+            aria-expanded={showXI}
             className="text-[11px] text-accent/90 hover:text-accent"
           >
             {showXI ? "Hide lineups" : "Lineups"}

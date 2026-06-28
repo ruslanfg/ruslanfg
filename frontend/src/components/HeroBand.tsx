@@ -50,12 +50,12 @@ function useCountUp(value: number, durationMs = 850) {
 }
 
 function Kpi({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  // `accent` (live state) is conveyed via chrome only — the cyan ring + label.
+  // The numeric value itself stays neutral (cyan must never color a number).
   return (
-    <div className="chrome-glass rounded-xl px-3 py-2">
-      <div className="label text-[9.5px] text-slate-500">{label}</div>
-      <div className={`numeric text-lg font-semibold ${accent ? "text-floodlight" : "text-slate-100"}`}>
-        {value}
-      </div>
+    <div className={`chrome-glass rounded-xl px-3 py-2 ${accent ? "ring-1 ring-floodlight/40" : ""}`}>
+      <div className={`label text-[9.5px] ${accent ? "text-floodlight" : "text-slate-500"}`}>{label}</div>
+      <div className="numeric text-lg font-semibold text-slate-100">{value}</div>
     </div>
   );
 }

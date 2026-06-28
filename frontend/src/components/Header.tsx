@@ -44,9 +44,10 @@ export function Header({
             <div className="hidden text-right sm:block">
               <div className="flex items-center justify-end gap-2 text-xs">
                 {liveActive && (
-                  <span className="chip bg-floodlight/15 text-floodlight">
+                  <span className="chip bg-floodlight/15 text-slate-200">
                     <span className="h-1.5 w-1.5 rounded-full bg-floodlight animate-live-beat" />
-                    <span className="numeric">{data.live_count}</span> live
+                    <span className="numeric text-slate-100">{data.live_count}</span>
+                    <span className="text-floodlight">live</span>
                   </span>
                 )}
                 {data.value_count > 0 && (
