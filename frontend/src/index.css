@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-950 text-slate-200 font-sans antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, rgba(129, 140, 248, 0.1), transparent 60%),
+    radial-gradient(900px 500px at 0% 0%, rgba(52, 211, 153, 0.06), transparent 55%);
+  background-attachment: fixed;
+}
+
+.nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-ink-600 rounded-full;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-ink-850/80 border border-white/[0.06] shadow-card backdrop-blur-sm;
+  }
+  .label {
+    @apply text-[11px] uppercase tracking-[0.14em] text-slate-500 font-medium;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium;
+  }
+  .th {
+    @apply text-left text-[11px] uppercase tracking-wider text-slate-500 font-medium px-3 py-2;
+  }
+  .td {
+    @apply px-3 py-2 text-sm border-t border-white/[0.04];
+  }
+}
