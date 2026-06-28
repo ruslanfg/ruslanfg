@@ -1,8 +1,42 @@
 import { useState } from "react";
-import { MatchCard as Match, TeamRef } from "../api";
-import { kickoff } from "../lib/format";
+import { MatchCall, MatchCard as Match, TeamRef } from "../api";
+import { kickoff, pct, signedPct } from "../lib/format";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { MarketTable } from "./MarketTable";
+
+// The model's strongest read for the match, surfaced as an informational pick.
+// It is a model estimate, never advice — the persistent disclaimer applies.
+function CallFooter({ call }: { call: MatchCall }) {
+  return (
+    <div className="mt-3 rounded-lg border border-floodlight/20 bg-floodlight/[0.05] px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="label flex items-center gap-1.5 text-floodlight">
+          <span aria-hidden>◎</span> Model's call
+        </span>
+        {call.is_value && call.edge !== null && (
+          <span className="chip bg-win/15 text-win">
+            VALUE <span className="numeric ml-0.5">{signedPct(call.edge)}</span>
+          </span>
+        )}
+      </div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-[15px] font-semibold text-slate-100">{call.headline}</span>
+        <span className="numeric text-[13px] text-slate-400">{pct(call.probability)}</span>
+      </div>
+      {call.secondary.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+          {call.secondary.map((s, i) => (
+            <span key={i}>
+              <span className="text-slate-400">{s.label}</span>{" "}
+              <span className="numeric">{pct(s.prob)}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="mt-1 text-[10px] text-slate-600">Model estimate · not betting advice</div>
+    </div>
+  );
+}
 
 function Crest({ team }: { team: TeamRef }) {
   const [broken, setBroken] = useState(false);
@@ -162,6 +196,8 @@ export function MatchCardView({ m }: { m: Match }) {
           <MarketTable market={m.market} />
         </div>
       )}
+
+      {m.call && <CallFooter call={m.call} />}
 
       {m.lineups_available && m.lineups && (
         <div className="mt-3">

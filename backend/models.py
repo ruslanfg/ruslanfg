@@ -52,6 +52,11 @@ class ExpectedGoals(BaseModel):
     away: float
 
 
+class MatchMarkets(BaseModel):
+    btts: float  # both teams to score
+    over25: float  # over 2.5 total goals
+
+
 class ModelEstimate(BaseModel):
     home_win: float
     draw: float
@@ -61,8 +66,24 @@ class ModelEstimate(BaseModel):
     provisional: bool
     basis: Literal["pre-match", "in-match"]
     expected_goals: ExpectedGoals
+    markets: Optional[MatchMarkets] = None
     factors: list[Factor]
     note: str = "Model estimate, not a guarantee."
+
+
+class CallLine(BaseModel):
+    label: str
+    prob: float
+
+
+class MatchCall(BaseModel):
+    """The model's strongest read for a match — an informational pick derived
+    from the model's own probabilities, NOT betting advice or a guarantee."""
+    headline: str
+    probability: float
+    is_value: bool = False  # the headline also beats the market (a value edge)
+    edge: Optional[float] = None
+    secondary: list[CallLine] = Field(default_factory=list)
 
 
 class ValueFlag(BaseModel):
@@ -109,6 +130,7 @@ class MatchCard(BaseModel):
     score: Score = Field(default_factory=Score)
     model: Optional[ModelEstimate] = None
     market: Optional[MarketComparison] = None
+    call: Optional[MatchCall] = None
     lineups_available: bool = False
     lineups: Optional[Lineups] = None
     data_note: Optional[str] = None

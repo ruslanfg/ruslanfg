@@ -33,8 +33,22 @@ export interface ModelEstimate {
   provisional: boolean;
   basis: "pre-match" | "in-match";
   expected_goals: { home: number; away: number };
+  markets: { btts: number; over25: number } | null;
   factors: Factor[];
   note: string;
+}
+
+export interface CallLine {
+  label: string;
+  prob: number;
+}
+
+export interface MatchCall {
+  headline: string;
+  probability: number;
+  is_value: boolean;
+  edge: number | null;
+  secondary: CallLine[];
 }
 
 export interface ValueFlag {
@@ -80,6 +94,7 @@ export interface MatchCard {
   score: { home: number | null; away: number | null };
   model: ModelEstimate | null;
   market: MarketComparison | null;
+  call: MatchCall | null;
   lineups_available: boolean;
   lineups: Lineups | null;
   data_note: string | null;

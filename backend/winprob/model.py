@@ -113,6 +113,23 @@ def compute(inp: ModelInputs, cfg) -> Optional[dict]:
 
     p_home, p_draw, p_away = _outcome_from_goal_dists(gh, ga, vh, va)
 
+    # Derived goal markets from the SAME model (both-teams-to-score, over/under
+    # 2.5). A side that has already scored is certain to have scored.
+    p_home_blank = vh[0] if gh == 0 else 0.0
+    p_away_blank = va[0] if ga == 0 else 0.0
+    btts = (1.0 - p_home_blank) * (1.0 - p_away_blank)
+    total = [0.0] * (len(vh) + len(va) - 1)
+    for i, ph in enumerate(vh):
+        for j, pa in enumerate(va):
+            total[i + j] += ph * pa
+    need = 3 - (gh + ga)  # "over 2.5" => final total >= 3
+    if need <= 0:
+        over25 = 1.0
+    elif need >= len(total):
+        over25 = 0.0
+    else:
+        over25 = sum(total[need:])
+
     # Confidence band: wide while ratings are provisional; narrower in-match.
     min_matches = min(inp.home_matches, inp.away_matches)
     band = min(0.22, 0.03 + 0.22 / (min_matches + 1))
@@ -164,5 +181,6 @@ def compute(inp: ModelInputs, cfg) -> Optional[dict]:
         "provisional": provisional,
         "basis": basis,
         "expected_goals": {"home": round(lambda_home, 2), "away": round(lambda_away, 2)},
+        "markets": {"btts": round(btts, 4), "over25": round(over25, 4)},
         "factors": factors,
     }

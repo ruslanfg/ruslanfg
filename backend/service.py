@@ -24,9 +24,11 @@ from .db import Database
 from .http_client import HttpClient, SourceError
 from .models import (
     DISCLAIMER,
+    CallLine,
     DashboardSnapshot,
     Lineups,
     MarketComparison,
+    MatchCall,
     MatchCard,
     ModelEstimate,
     OutcomeRow,
@@ -339,6 +341,7 @@ class Aggregator:
         model = ModelEstimate(**model_dict) if model_dict else None
 
         market = self._build_market(home_ref.name, away_ref.name, model, odds_events, wc_markets)
+        call = _build_call(model, market, home_ref.name, away_ref.name, status)
 
         return MatchCard(
             id=m["id"],
@@ -353,6 +356,7 @@ class Aggregator:
             score=score,
             model=model,
             market=market,
+            call=call,
         )
 
     def _build_market(
@@ -528,6 +532,69 @@ class Aggregator:
             if lu:
                 card["lineups_available"] = True
                 card["lineups"] = Lineups(**lu).model_dump()
+
+
+def _build_call(
+    model: Optional[ModelEstimate],
+    market: Optional[MarketComparison],
+    home_name: str,
+    away_name: str,
+    status: str,
+) -> Optional[MatchCall]:
+    """The model's strongest read for a match, surfaced as an informational pick
+    (not advice). Headline = a value result pick if the model beats the market,
+    otherwise the model's most likely result. Secondary lines = the model's
+    both-teams-to-score and over/under 2.5 leans. Only for live/upcoming games."""
+    if model is None or status not in ("live", "upcoming"):
+        return None
+
+    results = {
+        "home": (f"{home_name} to win", model.home_win),
+        "draw": ("Draw", model.draw),
+        "away": (f"{away_name} to win", model.away_win),
+    }
+
+    # Prefer a value pick (model materially above the book) for the headline.
+    value_pick = None
+    if market:
+        best_edge = 0.0
+        for row in market.outcomes:
+            if row.value.flagged and row.value.edge and row.value.edge > best_edge and row.model_pct:
+                best_edge = row.value.edge
+                label, _ = results.get(row.key, (row.label, row.model_pct))
+                value_pick = (label, row.model_pct, row.value.edge)
+
+    if value_pick:
+        headline, prob, edge = value_pick
+        is_value = True
+    else:
+        headline, prob = max(results.values(), key=lambda r: r[1])
+        edge, is_value = None, False
+
+    secondary: list[CallLine] = []
+    if model.markets:
+        btts = model.markets.btts
+        secondary.append(
+            CallLine(
+                label="Both teams to score" if btts >= 0.5 else "Not both teams to score",
+                prob=round(btts if btts >= 0.5 else 1 - btts, 4),
+            )
+        )
+        over = model.markets.over25
+        secondary.append(
+            CallLine(
+                label="Over 2.5 goals" if over >= 0.5 else "Under 2.5 goals",
+                prob=round(over if over >= 0.5 else 1 - over, 4),
+            )
+        )
+
+    return MatchCall(
+        headline=headline,
+        probability=round(prob, 4),
+        is_value=is_value,
+        edge=round(edge, 4) if edge is not None else None,
+        secondary=secondary,
+    )
 
 
 def _build_power_rankings(elo, get_form, cfg) -> list[PowerRankingRow]:
