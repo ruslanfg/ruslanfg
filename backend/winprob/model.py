@@ -70,6 +70,12 @@ class ModelInputs:
     home_ppg: Optional[float] = None  # recent-form points per game (0..3)
     away_ppg: Optional[float] = None
     form_n: int = 0
+    # goals-per-game involvement (scored + conceded) per team, for a
+    # matchup-specific expected total. None => fall back to the prior.
+    home_gpg: Optional[float] = None
+    away_gpg: Optional[float] = None
+    home_goal_games: int = 0
+    away_goal_games: int = 0
     # live state (None => pre-match)
     minute: Optional[int] = None
     home_goals: Optional[int] = None
@@ -91,7 +97,20 @@ def compute(inp: ModelInputs, cfg) -> Optional[dict]:
     if inp.home_ppg is not None and inp.away_ppg is not None:
         supremacy += m.form_weight * (inp.home_ppg - inp.away_ppg)
 
-    half = m.avg_total_goals / 2.0
+    # Expected TOTAL goals for THIS matchup, from the two teams' actual scoring
+    # environments (goals scored + conceded per game), shrunk toward the prior
+    # when few games have been played. This makes over/under + BTTS vary by
+    # matchup instead of being constant.
+    if inp.home_gpg is not None and inp.away_gpg is not None:
+        data_total = (inp.home_gpg + inp.away_gpg) / 2.0
+        g = min(inp.home_goal_games, inp.away_goal_games)
+        w = g / (g + 3.0)  # more games played => trust the data more
+        match_total = w * data_total + (1.0 - w) * m.avg_total_goals
+    else:
+        match_total = m.avg_total_goals
+    match_total = max(1.4, min(4.6, match_total))
+
+    half = match_total / 2.0
     lambda_home = max(0.12, half + supremacy / 2.0)
     lambda_away = max(0.12, half - supremacy / 2.0)
 

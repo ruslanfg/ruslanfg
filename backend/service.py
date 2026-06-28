@@ -43,7 +43,7 @@ from .models import (
     ValueFlag,
     ValueRow,
 )
-from .sources.football import FootballSource, recent_form
+from .sources.football import FootballSource, recent_form, team_goal_stats
 from .sources.odds import OddsSource, match_odds_to_fixture, normalize_team
 from .sources.polymarket import (
     PolymarketSource,
@@ -198,9 +198,18 @@ class Aggregator:
                     form_cache[team_id] = recent_form(team_id, finished, n=5)
                 return form_cache[team_id]
 
+            goals_cache: dict[str, Any] = {}
+
+            def get_goals(team_id: Optional[str]):
+                if not team_id:
+                    return None
+                if team_id not in goals_cache:
+                    goals_cache[team_id] = team_goal_stats(team_id, finished)
+                return goals_cache[team_id]
+
             # --- Build match cards ---
             cards = [
-                self._build_card(m, elo, get_form, odds_events, wc_markets)
+                self._build_card(m, elo, get_form, get_goals, odds_events, wc_markets)
                 for m in matches
             ]
             cards = _order_cards(cards)
@@ -286,6 +295,7 @@ class Aggregator:
         m: dict[str, Any],
         elo,
         get_form,
+        get_goals,
         odds_events: list[dict[str, Any]],
         wc_markets: list[dict[str, Any]],
     ) -> MatchCard:
@@ -314,6 +324,9 @@ class Aggregator:
         home_ref, home_elo, home_n, home_ppg, home_form_n = team_ref("home")
         away_ref, away_elo, away_n, away_ppg, away_form_n = team_ref("away")
 
+        home_goals_stats = get_goals(m.get("home_id"))
+        away_goals_stats = get_goals(m.get("away_id"))
+
         status = m.get("status", "unknown")
         is_live = status == "live"
         score = Score(home=m.get("home_goals"), away=m.get("away_goals"))
@@ -331,6 +344,10 @@ class Aggregator:
                 home_ppg=home_ppg,
                 away_ppg=away_ppg,
                 form_n=min(home_form_n, away_form_n),
+                home_gpg=home_goals_stats["gpg"] if home_goals_stats else None,
+                away_gpg=away_goals_stats["gpg"] if away_goals_stats else None,
+                home_goal_games=home_goals_stats["games"] if home_goals_stats else 0,
+                away_goal_games=away_goals_stats["games"] if away_goals_stats else 0,
                 minute=m.get("minute"),
                 home_goals=m.get("home_goals"),
                 away_goals=m.get("away_goals"),

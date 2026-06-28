@@ -137,6 +137,28 @@ class FootballSource:
         }
 
 
+def team_goal_stats(team_id: str, finished: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """Goals scored/conceded per game for a team, from ALL its finished matches.
+    Used to make each match's expected total goals matchup-specific (not a
+    constant). Returns {gf, ga, gpg, games} or None if no data."""
+    games = [
+        m
+        for m in finished
+        if (m.get("home_id") == team_id or m.get("away_id") == team_id)
+        and m.get("home_goals") is not None
+        and m.get("away_goals") is not None
+    ]
+    if not games:
+        return None
+    gf = ga = 0
+    for m in games:
+        is_home = m.get("home_id") == team_id
+        gf += m["home_goals"] if is_home else m["away_goals"]
+        ga += m["away_goals"] if is_home else m["home_goals"]
+    n = len(games)
+    return {"gf": gf / n, "ga": ga / n, "gpg": (gf + ga) / n, "games": n}
+
+
 def recent_form(team_id: str, finished: list[dict[str, Any]], n: int = 5) -> Optional[dict[str, Any]]:
     """Compute a team's recent form from finished matches (most-recent `n`).
     Returns {"results": ["W","D","L",...], "ppg": float, "n": int} or None."""
