@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { useDashboard } from "./hooks/useDashboard";
 import { Header } from "./components/Header";
+import { HeroBand } from "./components/HeroBand";
 import { Disclaimer } from "./components/Disclaimer";
 import { SourceHealth } from "./components/SourceHealth";
 import { MatchCardView } from "./components/MatchCard";
@@ -12,14 +14,26 @@ const DEFAULT_DISCLAIMER =
 export default function App() {
   const { data, conn, refreshing, forceRefresh } = useDashboard();
 
+  // Bump a tick whenever fresh data lands, to fire the hero ball's refresh pulse.
+  const [refreshTick, setRefreshTick] = useState(0);
+  const lastUpdated = useRef(0);
+  useEffect(() => {
+    if (data?.updated_at && data.updated_at !== lastUpdated.current) {
+      lastUpdated.current = data.updated_at;
+      setRefreshTick((t) => t + 1);
+    }
+  }, [data?.updated_at]);
+
   const matches = data?.matches ?? [];
   const live = matches.filter((m) => m.status === "live");
   const upcoming = matches.filter((m) => m.status === "upcoming" || m.status === "unknown");
   const finished = matches.filter((m) => m.status === "finished");
 
   return (
-    <div className="min-h-full pb-12">
+    <div className="min-h-full pb-24">
       <Header data={data} conn={conn} refreshing={refreshing} onRefresh={forceRefresh} />
+
+      <HeroBand data={data} refreshTick={refreshTick} />
 
       <main className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
         {data && data.sources.length > 0 && (
@@ -98,14 +112,17 @@ function Section({
   if (count === 0) return null;
   return (
     <section className="mb-6">
-      <div className="mb-2 flex items-center gap-2">
-        <h2 className="text-sm font-semibold text-slate-200">{title}</h2>
+      <div className="mb-1 flex items-center gap-2">
+        <h2 className="font-display text-[13px] font-semibold uppercase tracking-[0.14em] text-slate-200">
+          {title}
+        </h2>
         <span
-          className={`chip ${accent ? "bg-loss/15 text-loss" : "bg-ink-700 text-slate-400"}`}
+          className={`chip numeric ${accent ? "bg-loss/15 text-loss" : "bg-ink-700 text-slate-400"}`}
         >
           {count}
         </span>
       </div>
+      <span className="seg-tick mb-3 animate-underline-draw" />
       {children}
     </section>
   );

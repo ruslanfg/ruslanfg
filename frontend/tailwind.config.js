@@ -5,6 +5,10 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        // Broadcast/scoreboard display voice (labels, headings, score) — never long-form.
+        display: ["Oswald", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        // Numeric sub-system: tabular figures so live numbers never jitter.
+        numeric: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
       },
       colors: {
@@ -16,22 +20,36 @@ export default {
           700: "#1c212c",
           600: "#2a3140",
         },
+        // semantic data colors — UNCHANGED (quarantined to data atoms)
         win: "#34d399", // emerald-400 (home / value)
         draw: "#fbbf24", // amber-400
         loss: "#fb7185", // rose-400
-        accent: "#818cf8", // indigo-400
+        accent: "#818cf8", // indigo-400 (interactive text only)
+        // broadcast chrome accents — NEVER used on a number
+        floodlight: "#38e1d6", // stadium-LED cyan
+        floodwhite: "#d6e8ff",
+        pitch: "#07120f",
       },
       boxShadow: {
         card: "0 1px 0 0 rgba(255,255,255,0.03) inset, 0 8px 30px -12px rgba(0,0,0,0.6)",
         glow: "0 0 0 1px rgba(129,140,248,0.25), 0 8px 40px -8px rgba(129,140,248,0.25)",
+        liveGlow: "0 0 0 1px rgba(56,225,214,0.22), 0 8px 40px -10px rgba(56,225,214,0.20)",
       },
       keyframes: {
-        "fade-in": { "0%": { opacity: "0", transform: "translateY(4px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
+        "fade-in": { "0%": { opacity: "0", transform: "translateY(6px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
+        "live-beat": { "0%,100%": { opacity: "1" }, "50%": { opacity: "0.4" } },
         "pulse-dot": { "0%,100%": { opacity: "1" }, "50%": { opacity: "0.3" } },
+        sweep: { "0%": { transform: "translateX(-120%)" }, "100%": { transform: "translateX(120%)" } },
+        "underline-draw": { "0%": { transform: "scaleX(0)" }, "100%": { transform: "scaleX(1)" } },
+        "halo-pulse": { "0%,100%": { opacity: "0.5", transform: "scale(1)" }, "50%": { opacity: "0.95", transform: "scale(1.05)" } },
       },
       animation: {
-        "fade-in": "fade-in 0.35s ease-out both",
+        "fade-in": "fade-in 0.4s ease-out both",
+        "live-beat": "live-beat 1.4s ease-in-out infinite",
         "pulse-dot": "pulse-dot 1.4s ease-in-out infinite",
+        sweep: "sweep 0.7s ease-out",
+        "underline-draw": "underline-draw 0.5s ease-out both",
+        "halo-pulse": "halo-pulse 1.4s ease-in-out",
       },
     },
   },

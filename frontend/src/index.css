@@ -12,17 +12,47 @@ body,
   height: 100%;
 }
 
+/* Stadium-night field: ink base washed to pitch-teal at the grass horizon and
+   cold atmosphere up top, with two floodlight pools bleeding from the corners.
+   Pure CSS — the only WebGL on the page is the single hero ball canvas. */
 body {
   @apply bg-ink-950 text-slate-200 font-sans antialiased;
   background-image:
-    radial-gradient(1200px 600px at 85% -10%, rgba(129, 140, 248, 0.1), transparent 60%),
-    radial-gradient(900px 500px at 0% 0%, rgba(52, 211, 153, 0.06), transparent 55%);
+    radial-gradient(1100px 520px at 88% -8%, rgba(214, 232, 255, 0.1), transparent 60%),
+    radial-gradient(1000px 520px at 10% -6%, rgba(214, 232, 255, 0.08), transparent 58%),
+    radial-gradient(900px 500px at 0% 0%, rgba(52, 211, 153, 0.05), transparent 55%),
+    linear-gradient(180deg, #0a0e14 0%, #06070a 42%, #06070a 78%, #07120f 100%);
   background-attachment: fixed;
 }
 
-.nums {
+/* ~3% film grain to kill banding and add cinematic texture. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+/* Numeric sub-system: tabular monospace figures so live numbers never jitter. */
+.nums,
+.numeric {
+  font-family: theme("fontFamily.numeric");
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+.display {
+  font-family: theme("fontFamily.display");
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 ::-webkit-scrollbar {
@@ -39,19 +69,47 @@ body {
 }
 
 @layer components {
+  /* PAPER tier — flat, no backdrop-blur (cheap to composite over long lists). */
   .card {
-    @apply rounded-2xl bg-ink-850/80 border border-white/[0.06] shadow-card backdrop-blur-sm;
+    @apply rounded-2xl border border-white/[0.07] bg-ink-850 shadow-card;
+  }
+  /* CHROME-GLASS tier — blur allowed, used on few nodes (header/hero/disclaimer). */
+  .chrome-glass {
+    @apply border-white/[0.07] bg-ink-850/80 backdrop-blur-md;
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
   }
   .label {
-    @apply text-[11px] uppercase tracking-[0.14em] text-slate-500 font-medium;
+    @apply font-display text-[11px] uppercase tracking-[0.12em] text-slate-500;
   }
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium;
   }
   .th {
-    @apply text-left text-[11px] uppercase tracking-wider text-slate-500 font-medium px-3 py-2;
+    @apply font-display text-left text-[10.5px] uppercase tracking-[0.08em] text-slate-500 px-2 py-2;
   }
   .td {
-    @apply px-3 py-2 text-sm border-t border-white/[0.04];
+    @apply px-2 py-2 text-[13px] border-t border-white/[0.05];
+  }
+  /* Section segment-slate underline tick (cyan, draws in on viewport entry). */
+  .seg-tick {
+    @apply block h-px w-10 origin-left bg-floodlight/70;
+  }
+}
+
+/* Cyan keyboard focus ring on every interactive control. */
+*:focus-visible {
+  outline: 2px solid rgba(56, 225, 214, 0.7);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect reduced-motion: freeze all decorative animation everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

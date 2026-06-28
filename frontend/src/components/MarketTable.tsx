@@ -6,14 +6,14 @@ import { DASH, pct, signedPct } from "../lib/format";
 export function MarketTable({ market }: { market: MarketComparison }) {
   if (!market.sportsbook_available && !market.polymarket_available) {
     return (
-      <div className="rounded-lg bg-ink-800/60 px-3 py-2 text-[12px] text-slate-500">
+      <div className="rounded-lg border border-white/[0.05] bg-ink-800/50 px-3 py-2 text-[12px] italic text-slate-500">
         {market.note || "Market data unavailable"}
       </div>
     );
   }
   return (
-    <div className="overflow-hidden rounded-lg border border-white/[0.05]">
-      <table className="w-full nums">
+    <div className="overflow-hidden rounded-lg border border-white/[0.06]">
+      <table className="w-full">
         <thead className="bg-ink-800/60">
           <tr>
             <th className="th">Outcome</th>
@@ -29,18 +29,28 @@ export function MarketTable({ market }: { market: MarketComparison }) {
           {market.outcomes.map((row) => {
             const flagged = row.value.flagged;
             return (
-              <tr key={row.key} className={flagged ? "bg-win/[0.07]" : ""}>
-                <td className="td text-slate-300">{row.label}</td>
-                <td className="td text-right text-slate-200">{pct(row.model_pct)}</td>
-                <td className="td text-right text-slate-300">{pct(row.sportsbook_pct)}</td>
-                <td className="td text-right text-slate-300">{pct(row.polymarket_pct)}</td>
-                <td
-                  className={`td text-right font-medium ${
-                    flagged ? "text-win" : "text-slate-500"
-                  }`}
-                >
-                  {row.value.edge === null ? DASH : signedPct(row.value.edge)}
-                  {flagged && <span className="ml-1" title="Model edge vs book">●</span>}
+              <tr
+                key={row.key}
+                className={`group relative ${flagged ? "bg-win/[0.06] hover:bg-win/[0.1]" : ""}`}
+              >
+                <td className="td relative text-slate-300">
+                  {flagged && (
+                    <span className="absolute inset-y-0 left-0 w-[2px] bg-win transition-all group-hover:shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+                  )}
+                  {row.label}
+                </td>
+                <td className="td numeric text-right text-slate-100">{pct(row.model_pct)}</td>
+                <td className="td numeric text-right text-slate-300">{pct(row.sportsbook_pct)}</td>
+                <td className="td numeric text-right text-slate-300">{pct(row.polymarket_pct)}</td>
+                <td className={`td text-right ${flagged ? "text-win" : "text-slate-500"}`}>
+                  <span className="numeric font-medium">
+                    {row.value.edge === null ? DASH : signedPct(row.value.edge)}
+                  </span>
+                  {flagged && (
+                    <span className="ml-1 inline-flex items-center gap-0.5 align-middle font-display text-[8.5px] tracking-wide transition-transform group-hover:scale-105">
+                      <span>●</span>VALUE
+                    </span>
+                  )}
                 </td>
               </tr>
             );

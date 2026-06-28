@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Dashboard } from "../api";
 import { ConnState } from "../hooks/useDashboard";
 import { agoFromUnix } from "../lib/format";
@@ -14,13 +15,22 @@ export function Header({
   onRefresh: () => void;
 }) {
   const t = data?.tournament;
+  const liveActive = (data?.live_count ?? 0) > 0;
+  const [sweep, setSweep] = useState(false);
+
+  const handleRefresh = () => {
+    setSweep(true);
+    window.setTimeout(() => setSweep(false), 750);
+    onRefresh();
+  };
+
   return (
-    <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-ink-950/85 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-20 border-b border-white/[0.06] chrome-glass bg-ink-950/85">
+      <div className="relative mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="min-w-0">
-          <h1 className="text-base font-semibold tracking-tight text-slate-100 sm:text-lg">
+          <h1 className="font-display text-base font-semibold uppercase tracking-[0.05em] text-slate-100 sm:text-lg">
             {t?.name || "FIFA World Cup 2026"}
-            <span className="ml-2 text-xs font-normal text-slate-500">
+            <span className="ml-2 font-sans text-xs font-normal normal-case tracking-normal text-slate-500">
               prediction &amp; market dashboard
             </span>
           </h1>
@@ -33,18 +43,20 @@ export function Header({
           {data && (
             <div className="hidden text-right sm:block">
               <div className="flex items-center justify-end gap-2 text-xs">
-                {data.live_count > 0 && (
-                  <span className="chip bg-loss/15 text-loss">
-                    <span className="h-1.5 w-1.5 rounded-full bg-loss animate-pulse-dot" />
-                    {data.live_count} live
+                {liveActive && (
+                  <span className="chip bg-floodlight/15 text-floodlight">
+                    <span className="h-1.5 w-1.5 rounded-full bg-floodlight animate-live-beat" />
+                    <span className="numeric">{data.live_count}</span> live
                   </span>
                 )}
                 {data.value_count > 0 && (
-                  <span className="chip bg-win/10 text-win">{data.value_count} value flags</span>
+                  <span className="chip bg-win/10 text-win">
+                    <span className="numeric">{data.value_count}</span> value flags
+                  </span>
                 )}
               </div>
               <div className="mt-0.5 text-[10.5px] text-slate-500">
-                updated {agoFromUnix(data.updated_at)}
+                updated <span className="numeric">{agoFromUnix(data.updated_at)}</span>
               </div>
             </div>
           )}
@@ -59,20 +71,29 @@ export function Header({
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${
-                conn === "live" ? "bg-win animate-pulse-dot" : conn === "offline" ? "bg-loss" : "bg-slate-500"
+                conn === "live"
+                  ? "bg-win animate-live-beat"
+                  : conn === "offline"
+                  ? "bg-loss"
+                  : "bg-slate-500"
               }`}
             />
             {conn}
           </span>
           <button
-            onClick={onRefresh}
+            onClick={handleRefresh}
             disabled={refreshing}
-            className="rounded-lg border border-white/10 bg-ink-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-ink-700 disabled:opacity-50"
+            className="relative overflow-hidden rounded-lg border border-white/10 bg-ink-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-ink-700 disabled:opacity-50"
           >
+            {sweep && (
+              <span className="pointer-events-none absolute inset-y-0 -left-full w-full animate-sweep bg-gradient-to-r from-transparent via-floodlight/30 to-transparent" />
+            )}
             {refreshing ? "Refreshing…" : "Refresh"}
           </button>
         </div>
       </div>
+      {/* cyan scoreboard underline only while something is live */}
+      {liveActive && <div className="h-px w-full bg-floodlight/50" />}
     </header>
   );
 }

@@ -18,7 +18,7 @@ function Crest({ team }: { team: TeamRef }) {
   }
   const initials = team.name.slice(0, 3).toUpperCase();
   return (
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink-700 text-[9px] font-semibold text-slate-400">
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink-700 font-display text-[9px] font-semibold text-slate-400">
       {initials}
     </div>
   );
@@ -27,16 +27,16 @@ function Crest({ team }: { team: TeamRef }) {
 function Form({ form }: { form: string[] | null }) {
   if (!form || form.length === 0) return null;
   const color: Record<string, string> = {
-    W: "bg-win/20 text-win",
-    D: "bg-draw/20 text-draw",
-    L: "bg-loss/20 text-loss",
+    W: "bg-win/20 text-win shadow-[inset_0_0_5px_rgba(52,211,153,0.35)]",
+    D: "bg-draw/20 text-draw shadow-[inset_0_0_5px_rgba(251,191,36,0.35)]",
+    L: "bg-loss/20 text-loss shadow-[inset_0_0_5px_rgba(251,113,133,0.35)]",
   };
   return (
     <div className="flex gap-1">
       {form.map((r, i) => (
         <span
           key={i}
-          className={`flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold ${
+          className={`flex h-4 w-4 items-center justify-center rounded-[3px] text-[9px] font-bold ${
             color[r] || "bg-ink-700 text-slate-400"
           }`}
         >
@@ -50,16 +50,17 @@ function Form({ form }: { form: string[] | null }) {
 function StatusBadge({ m }: { m: Match }) {
   if (m.status === "live") {
     return (
-      <span className="chip bg-loss/15 text-loss">
-        <span className="h-1.5 w-1.5 rounded-full bg-loss animate-pulse-dot" />
-        LIVE {m.minute ? `~${m.minute}'` : ""}
+      <span className="chip font-display bg-floodlight/15 text-floodlight">
+        <span className="h-1.5 w-1.5 rounded-full bg-floodlight animate-live-beat" />
+        LIVE {m.minute ? <span className="numeric ml-0.5">~{m.minute}'</span> : null}
       </span>
     );
   }
-  if (m.status === "finished") return <span className="chip bg-ink-700 text-slate-400">FT</span>;
+  if (m.status === "finished")
+    return <span className="chip font-display bg-ink-700 text-slate-400">FT</span>;
   if (m.status === "upcoming")
-    return <span className="chip bg-accent/10 text-accent">{kickoff(m.utc_date)}</span>;
-  return <span className="chip bg-ink-700 text-slate-500">scheduled</span>;
+    return <span className="chip numeric bg-accent/10 text-accent">{kickoff(m.utc_date)}</span>;
+  return <span className="chip font-display bg-ink-700 text-slate-500">scheduled</span>;
 }
 
 function TeamLine({ team, goals }: { team: TeamRef; goals: number | null }) {
@@ -71,8 +72,12 @@ function TeamLine({ team, goals }: { team: TeamRef; goals: number | null }) {
           <span className="truncate font-medium text-slate-100">{team.name}</span>
           {team.elo !== null && (
             <span
-              className="shrink-0 text-[10px] text-slate-500 nums"
-              title={team.elo_provisional ? "Provisional rating (few matches played)" : "Elo rating"}
+              className="numeric shrink-0 text-[10px] text-slate-500"
+              title={
+                team.elo_provisional
+                  ? "Provisional rating (few matches played)"
+                  : "Elo rating"
+              }
             >
               {Math.round(team.elo)}
               {team.elo_provisional ? "*" : ""}
@@ -81,10 +86,19 @@ function TeamLine({ team, goals }: { team: TeamRef; goals: number | null }) {
         </div>
         <Form form={team.form} />
       </div>
-      {goals !== null && <div className="text-2xl font-bold text-slate-100 nums">{goals}</div>}
+      {goals !== null && (
+        <div className="font-display text-3xl font-bold leading-none text-slate-50">{goals}</div>
+      )}
     </div>
   );
 }
+
+const EDGE: Record<string, string> = {
+  live: "bg-floodlight animate-live-beat",
+  upcoming: "bg-accent/60",
+  finished: "bg-slate-600",
+  unknown: "bg-slate-700",
+};
 
 export function MatchCardView({ m }: { m: Match }) {
   const [showWhy, setShowWhy] = useState(false);
@@ -92,7 +106,13 @@ export function MatchCardView({ m }: { m: Match }) {
   const showScore = m.status === "live" || m.status === "finished";
 
   return (
-    <div className="card animate-fade-in flex flex-col p-4">
+    <div
+      className={`card animate-fade-in relative flex flex-col overflow-hidden p-4 pl-5 ${
+        m.status === "live" ? "shadow-liveGlow" : ""
+      }`}
+    >
+      <span className={`absolute inset-y-0 left-0 w-[2px] ${EDGE[m.status] || EDGE.unknown}`} />
+
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="label truncate">
           {m.stage ? m.stage.replace(/_/g, " ") : "Match"}
@@ -110,7 +130,7 @@ export function MatchCardView({ m }: { m: Match }) {
         {m.model ? (
           <ProbabilityBar model={m.model} homeName={m.home.name} awayName={m.away.name} />
         ) : (
-          <div className="rounded-lg bg-ink-800/60 px-3 py-2 text-[12px] text-slate-500">
+          <div className="rounded-lg border border-dashed border-white/10 bg-ink-800/40 px-3 py-2 text-[12px] text-slate-500">
             Model estimate unavailable — not enough rating data yet.
           </div>
         )}
@@ -158,7 +178,8 @@ export function MatchCardView({ m }: { m: Match }) {
               ].map((side) => (
                 <div key={side.team}>
                   <div className="mb-1 font-medium text-slate-300">
-                    {side.team} {side.f ? <span className="text-slate-500">{side.f}</span> : null}
+                    {side.team}{" "}
+                    {side.f ? <span className="text-slate-500">{side.f}</span> : null}
                   </div>
                   <ol className="space-y-0.5">
                     {side.xi.map((p, i) => (
