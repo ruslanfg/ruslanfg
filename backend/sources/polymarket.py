@@ -97,14 +97,37 @@ class PolymarketSource:
 
     # -- leaderboard ----------------------------------------------------------
     async def fetch_leaderboard(self, limit: int = 12) -> list[dict[str, Any]]:
-        url = f"{self.cfg.leaderboard_url}/leaderboard"
-        params = {"window": "all", "limit": str(limit), "orderBy": "pnl"}
-        data = await self.http.get_json(url, params=params)
-        rows = data if isinstance(data, list) else (data.get("data") if isinstance(data, dict) else None)
-        if not isinstance(rows, list):
+        """Top traders by realized P&L from Polymarket's public leaderboard
+        (``/profit``), best-effort enriched with each trader's volume from
+        ``/volume``. Both return a plain JSON array of
+        ``{proxyWallet, amount, name, pseudonym, ...}``."""
+        profit = await self.http.get_json(
+            f"{self.cfg.leaderboard_url}/profit",
+            params={"window": "all", "limit": str(limit)},
+        )
+        if not isinstance(profit, list):
             raise SourceError("unexpected response shape")
+
+        # Best-effort volume lookup (don't fail the board if this errors).
+        vol_map: dict[str, float] = {}
+        try:
+            vol = await self.http.get_json(
+                f"{self.cfg.leaderboard_url}/volume",
+                params={"window": "all", "limit": "100"},
+            )
+            if isinstance(vol, list):
+                for r in vol:
+                    if not isinstance(r, dict):
+                        continue
+                    a = _first(r, "proxyWallet", "wallet", "address")
+                    amt = _to_float(_first(r, "amount", "volume", "vol"))
+                    if a and amt is not None:
+                        vol_map[str(a).lower()] = amt
+        except SourceError:
+            pass
+
         traders = []
-        for i, r in enumerate(rows[:limit]):
+        for i, r in enumerate(profit[:limit]):
             if not isinstance(r, dict):
                 continue
             addr = _first(r, "proxyWallet", "wallet", "address", "user", "account", "proxy_address")
@@ -116,7 +139,7 @@ class PolymarketSource:
                     "address": str(addr),
                     "display": _first(r, "name", "pseudonym", "displayName", "username"),
                     "pnl": _to_float(_first(r, "amount", "pnl", "profit", "realizedPnl", "p")),
-                    "volume": _to_float(_first(r, "volume", "vol", "totalVolume")),
+                    "volume": vol_map.get(str(addr).lower()),
                 }
             )
         return traders
